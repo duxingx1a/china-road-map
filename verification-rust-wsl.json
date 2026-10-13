@@ -1,0 +1,10 @@
+{
+  "base": "http://127.0.0.1:18766",
+  "requests": 96,
+  "concurrency": 16,
+  "successful": 96,
+  "seconds": 0.311,
+  "median_ms": 37.2,
+  "p95_ms": 97.4,
+  "baseline_parity": false
+}

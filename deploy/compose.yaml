@@ -1,0 +1,34 @@
+services:
+  map:
+    image: china-road-map:1.0.4
+    container_name: china-road-map
+    restart: unless-stopped
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1.25
+    pids_limit: 64
+    environment:
+      MAP_LISTEN: 0.0.0.0:8080
+      MAP_DATA_DIR: /data
+      MAP_WEB_DIR: /web
+      MAP_TILE_CACHE_MB: 16
+      MAP_WORKERS: 2
+      MAP_PUBLIC_MODE: "true"
+    volumes:
+      - ./data:/data:ro
+    networks:
+      nginx:
+        aliases: [china-road-map]
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+    stop_grace_period: 20s
+networks:
+  nginx:
+    external: true
+    name: nginx_nginx-net

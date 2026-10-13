@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f6f8">
+  <title>中国公路图谱</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/maplibre-gl.js" defer></script>
+  <script src="basemap-style.js" defer></script>
+  <script src="view-controls.js" defer></script>
+  <script src="route-loader.js" defer></script>
+  <script src="tile-loader.js" defer></script>
+  <script src="mobile-drawer.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="./" aria-label="中国公路图谱首页"><span class="brand-mark">路</span><span>中国公路图谱<small>CHINA ROAD ATLAS</small></span></a>
+  </header>
+  <main class="workspace">
+    <aside id="road-drawer" class="sidebar" aria-label="公路搜索与列表">
+      <div class="drawer-header"><button id="drawer-toggle" aria-label="展开路线列表" aria-controls="road-drawer" aria-expanded="false"><span class="drawer-grip" aria-hidden="true"></span><span class="drawer-label">路线列表</span></button><button id="drawer-close">返回地图 <span aria-hidden="true">↓</span></button></div>
+      <div class="sidebar-top">
+        <h1>公路检索</h1>
+        <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" autocomplete="off" placeholder="编号或名称，如 G318、京港澳" aria-label="搜索公路编号或名称"><kbd>/</kbd></label>
+        <div class="suggestions"><span>试试</span><button data-query="G318">G318</button><button data-query="G4">G4</button><button data-query="G30">G30</button></div>
+        <div class="tabs" role="group" aria-label="公路类别"><button class="active" data-kind="all">全部</button><button data-kind="national">国道</button><button data-kind="expressway">国家高速</button><button data-kind="provincial">省级高速</button></div>
+        <div class="filters"><label><select id="province" aria-label="筛选途经省份"><option value="">全国 · 所有省份</option></select></label></div>
+      </div>
+      <section id="selections" class="selections" aria-label="已选路线" hidden><div class="selection-heading"><span>已选路线 <b id="selected-count">0 / 10</b></span><button id="clear-selections">清空</button></div><div id="selected-list"></div></section>
+      <div class="result-heading">路线目录</div>
+      <div id="road-list" class="road-list" aria-live="polite"><div class="list-state">正在读取本地目录…</div></div>
+    </aside>
+    <section class="map-panel" aria-label="中国道路地图">
+      <div id="map"></div>
+      <div class="map-actions"><button id="reset-map" aria-label="全国概览"><span class="desktop-label">全国概览</span><span class="mobile-label">全国</span></button><button id="overview-route" aria-label="全览路线" disabled><span class="desktop-label">全览路线</span><span class="mobile-label">全览</span></button><button id="restore-view" aria-label="恢复视野" disabled><span class="desktop-label">恢复视野</span><span class="mobile-label">恢复</span></button><button id="toggle-basemap" aria-pressed="true">底图</button><button id="toggle-national" aria-pressed="true">国道</button><button id="toggle-express" aria-pressed="true">高速</button></div>
+      <div id="loading" class="map-loading"><span class="spinner"></span><span>正在读取中国地图…</span></div>
+      <div id="route-loading" class="route-loading" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="route-loading-text"></span></div>
+      <div id="toast" class="toast" role="status" hidden></div>
+      <div class="legend"><span><i class="national-line"></i>国道</span><span><i class="express-line"></i>高速</span><span><i class="border-line"></i>省界</span></div>
+      <div id="south-sea" class="south-sea" aria-label="南海诸岛位置示意图"><span>南海诸岛</span><svg id="south-sea-svg" viewBox="0 0 110 142" aria-hidden="true"></svg></div>
+      <article id="detail" class="detail" hidden aria-label="选中公路详情"></article>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "networkPath": "/api/network?bbox=97.6419430,26.8161940,110.4134550,34.3804899&kinds=national,expressway,provincial",
+  "sameRouteIds": true,
+  "sizes": [
+    {
+      "kind": "network zoom 7",
+      "oldGzipBytes": 9383911,
+      "newGzipBytes": 548734,
+      "reductionPercent": 94.2,
+      "oldIdealSecondsAt3Mbps": 25.02,
+      "newIdealSecondsAt3Mbps": 1.46
+    },
+    {
+      "kind": "national-G248 overview",
+      "oldGzipBytes": 299838,
+      "newGzipBytes": 13775,
+      "reductionPercent": 95.4,
+      "oldIdealSecondsAt3Mbps": 0.8,
+      "newIdealSecondsAt3Mbps": 0.04
+    },
+    {
+      "kind": "national-G318 overview",
+      "oldGzipBytes": 480555,
+      "newGzipBytes": 25741,
+      "reductionPercent": 94.6,
+      "oldIdealSecondsAt3Mbps": 1.28,
+      "newIdealSecondsAt3Mbps": 0.07
+    },
+    {
+      "kind": "national-G219 overview",
+      "oldGzipBytes": 930098,
+      "newGzipBytes": 42807,
+      "reductionPercent": 95.4,
+      "oldIdealSecondsAt3Mbps": 2.48,
+      "newIdealSecondsAt3Mbps": 0.11
+    },
+    {
+      "kind": "expressway-G5 overview",
+      "oldGzipBytes": 267146,
+      "newGzipBytes": 15678,
+      "reductionPercent": 94.1,
+      "oldIdealSecondsAt3Mbps": 0.71,
+      "newIdealSecondsAt3Mbps": 0.04
+    }
+  ]
+}

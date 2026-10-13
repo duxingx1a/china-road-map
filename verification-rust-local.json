@@ -1,0 +1,7 @@
+{
+  "base": "http://127.0.0.1:18766",
+  "publicMode": true,
+  "baseline_parity": true,
+  "functionalChecks": "passed",
+  "loadTest": "separate rate-limit test; do not mix synthetic bursts with functional checks"
+}

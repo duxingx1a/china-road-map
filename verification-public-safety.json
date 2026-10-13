@@ -1,0 +1,11 @@
+{
+  "normalReads": 5,
+  "normalSuccessful": 5,
+  "burstStatuses": {
+    "200": 10,
+    "429": 54
+  },
+  "retryAfterSeconds": 2,
+  "recoversAfterWait": true,
+  "originalDownloadDenied": true
+}
