@@ -1,18 +1,18 @@
 {
-  "updatedAt": "2026-10-13T09:52:53.720560+00:00",
+  "updatedAt": "2026-10-13T12:11:57.204040+00:00",
   "url": "https://ydl66.top/map/",
   "server": "ydl-server",
   "project": "/root/ydl-projects/map",
   "backend": "rust",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "compiledOn": "local Ubuntu-22.04 WSL",
   "target": "x86_64-unknown-linux-musl",
   "serverCompilation": false,
-  "image": "china-road-map:1.1.0",
-  "imageId": "sha256:5dadd5373502c4c635f7b57731d6118c4174c58c3d4e0853d77856dd6912f1d9",
-  "imageBytesOnServer": 5224465,
-  "runtimeDataBytesOnServer": 4008846516,
-  "displayDataBytesOnServer": 776039812,
+  "image": "china-road-map:1.1.1",
+  "imageId": "sha256:66a945d3975ab6264434f2d6de01677406795e62747b04bc0fa77674783835fd",
+  "imageBytesOnServer": 5225298,
+  "runtimeDataBytesOnServer": 4008383303,
+  "displayDataBytesOnServer": 775762328,
   "memoryLimitMiB": 256,
   "cpuLimit": 1.25,
   "health": "healthy",
@@ -34,8 +34,8 @@
     "sampleNetworkGzipBytesAfter": 548734,
     "roadPresentation": "G0711 search card, selected list and detail verified in production browser; G0613, G318 and Guangxi S60 checked against local catalog",
     "mobile": "Local browser: 320x568 and 390x844 portrait, 844x390 landscape; drag up/down, search and route selection. Production 390px: toolbar one row, collapsed drawer 104px, detail 70px, no horizontal overflow. Desktop 1280px: sidebar 330px and original two-row toolbar.",
-    "railwayTestsPassed": 4,
-    "railwayPublicChecks": "passed; display files byte-identical to local, categories distinct, private files blocked"
+    "railwayTestsPassed": 5,
+    "railwayPublicChecks": "passed; display parity, separate kinds, service records and old display files removed, original resources blocked"
   },
   "ui": {
     "hoverPrefetchDelayMs": 160,
@@ -63,14 +63,22 @@
       "individualLineColors": false,
       "lazyOverview": true,
       "defaultBackgroundEnabled": false,
-      "mobileCategoriesFit320px": true
+      "mobileCategoriesFit320px": true,
+      "opaqueSingleLayerPattern": true,
+      "backgroundFading": "fixed pale pattern; no alpha accumulation",
+      "sharedTracksHaveSameColor": true
     }
   },
   "railwayData": {
     "snapshot": "2026-10-12T20:21:35Z",
     "highspeedRecords": 206,
-    "conventionalRecords": 1024,
+    "conventionalRecords": 1021,
     "scope": "named infrastructure lines, sections and branches; not an official exhaustive route list",
-    "originalRoadFilesByteIdentical": 1377
+    "originalRoadFilesByteIdentical": 1377,
+    "excludedServiceRecords": [
+      "5619列车",
+      "5620列车",
+      "T6607 甘谷-兰州"
+    ]
   }
 }

@@ -3,7 +3,7 @@ set -euo pipefail
 export PATH="$HOME/.cargo/bin:$PATH"
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 build_root=${MAP_BUILD_DIR:-/home/ydl/map-build}
-image_tag=${MAP_IMAGE_TAG:-china-road-map:1.1.0}
+image_tag=${MAP_IMAGE_TAG:-china-road-map:1.1.1}
 export CARGO_TARGET_DIR="$build_root/target"
 export CC_x86_64_unknown_linux_musl=musl-gcc
 mkdir -p "$build_root/image/web" "$build_root/artifacts"

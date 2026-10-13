@@ -20,9 +20,21 @@ def verify(base):
             transfers[path] = {'bytes': len(body), 'gzip': compressed}
             return gzip.decompress(body) if compressed else body
 
-    catalog = json.loads(fetch('data/catalog.json?v=20261013-rail1'))
+    catalog = json.loads(fetch('data/catalog.json?v=20261013-rail2'))
     assert catalog == json.loads((ROOT/'data/catalog.json').read_bytes())
     counts = {kind: sum(r['kind'] == kind for r in catalog) for kind in ('highspeed', 'railway')}
+    assert not any(r['kind'] in ('highspeed','railway') and
+                   (r['name'] in ('5619列车','5620列车','T6607 甘谷-兰州') or '列车' in r['name']) for r in catalog)
+    removed = {'railway-f309ba02edb5', 'railway-8cf12d7329ef', 'railway-6e18a2dda371'}
+    value = json.loads(fetch('api/network?bbox=102.5,28.4,103.7,29.8&zoom=9&kinds=railway'))
+    assert value['features'] and not any(f['properties']['id'] in removed for f in value['features'])
+    for ident in removed:
+        try:
+            fetch(f'data/display/routes/overview/{ident}.geojson')
+        except HTTPError as error:
+            assert error.code == 404, (ident, error.code)
+        else:
+            raise AssertionError('Train service display file still available: '+ident)
     samples = [next(r for r in catalog if r['name'] == name) for name in ('京沪高铁', '京沪线')]
     assert samples[0]['id'] != samples[1]['id']
     for route in samples:

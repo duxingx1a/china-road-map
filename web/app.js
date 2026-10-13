@@ -6,13 +6,13 @@ const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':
 const labels = {national:'普通国道',expressway:'国家高速',provincial:'省级高速',highspeed:'高铁',railway:'普速铁路'};
 const isRail=road=>road.kind==='highspeed'||road.kind==='railway';
 const routeLabel=road=>isRail(road)?road.name:road.code;
-const layerStyles=[{kind:'national',prefix:'national',color:'#b95555',opacity:.85},{kind:'expressway',prefix:'express',color:'#387457',opacity:.9},{kind:'provincial',prefix:'provincial',color:'#387457',opacity:.9},{kind:'highspeed',prefix:'highspeed',color:'#b4232f',opacity:.8},{kind:'railway',prefix:'railway',color:'#292d30',opacity:.8}];
+const layerStyles=[{kind:'national',prefix:'national',color:'#b95555',opacity:.85},{kind:'expressway',prefix:'express',color:'#387457',opacity:.9},{kind:'provincial',prefix:'provincial',color:'#387457',opacity:.9},{kind:'highspeed',prefix:'highspeed',color:'#b4232f',mutedColor:'#f1e5e4',opacity:1},{kind:'railway',prefix:'railway',color:'#292d30',mutedColor:'#e6e6e4',opacity:1}];
 const chinaView = [[73,17],[135.6,54.5]];
 const viewNumbers=(new URLSearchParams(location.search).get('view')||'').split(',').map(Number);
 const initialView=viewNumbers.length===3&&viewNumbers.every(Number.isFinite)&&viewNumbers[0]>=72&&viewNumbers[0]<=136&&viewNumbers[1]>=3&&viewNumbers[1]<=55&&viewNumbers[2]>=1.3&&viewNumbers[2]<=18?viewNumbers:null;
 let map, catalog = [], byId = new Map(), selected = null, kind = 'all', displayed = 80, result = [], toastTimer;
 const selections=new Map();
-const DISPLAY_VERSION='20261013-rail1';
+const DISPLAY_VERSION='20261013-rail2';
 const routeTier=()=>map?.getZoom()>=12?'detail':map?.getZoom()>=9?'standard':'overview';
 const routeKey=id=>id+'@'+routeTier();
 const routeLoader=atlasRoutes.create({fetchRoute:(key,signal)=>{const [id,tier]=key.split('@');return readJSON(`/data/display/routes/${tier}/${encodeURIComponent(id)}.geojson?v=${DISPLAY_VERSION}`,{signal,withSize:true});}});
@@ -34,6 +34,16 @@ let basemapVisible=true,basemapRegions=new Set(),precisionPending,precisionBound
 let railOverviewLoaded=false,railOverviewPending=null;
 const empty = () => ({type:'FeatureCollection',features:[]});
 const isRouteBusy = entry => Boolean(entry?.loading||entry?.rendering);
+function addRailPatterns(){
+  for(const {kind,color,mutedColor} of layerStyles.filter(layer=>isRail(layer))){
+    for(const [suffix,tint] of [['',color],['-muted',mutedColor]]){
+      const rgb=[1,3,5].map(start=>parseInt(tint.slice(start,start+2),16));
+      const data=new Uint8Array(16*4*4);
+      for(let y=0;y<4;y++)for(let x=0;x<16;x++)data.set([...(x<8?rgb:[255,255,255]),255],(y*16+x)*4);
+      map.addImage('rail-'+kind+suffix,{width:16,height:4,data});
+    }
+  }
+}
 const compactProvince = s => s.replace(/壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区|省|市/g, '');
 const mobileDrawer=atlasMobile.create({sidebar:$('road-drawer'),toggle:$('drawer-toggle'),close:$('drawer-close'),mapPanel:document.querySelector('.map-panel'),search:$('search'),header:document.querySelector('.header'),workspace:document.querySelector('.workspace'),onLayout:()=>map?.resize()});
 
@@ -106,10 +116,11 @@ function initMap(china) {
   mapLoaded = new Promise(resolve => map.on('load', () => {
     if(!initialView)map.fitBounds(chinaView,{padding:30,retainPadding:false,duration:0});
     updateZoomLimit();
+    addRailPatterns();
     map.addSource('selected',{type:'geojson',data:empty(),tolerance:0,maxzoom:18,buffer:128});
     map.addLayer({id:'selected-halo',type:'line',source:'selected',paint:{'line-color':'#ffffff','line-width':['interpolate',['linear'],['zoom'],3,5,9,9],'line-opacity':.92},layout:{'line-cap':'round','line-join':'round'}});
-    map.addLayer({id:'selected-road',type:'line',source:'selected',paint:{'line-color':['coalesce',['get','selectionColor'],'#14613f'],'line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8]},layout:{'line-cap':'round','line-join':'round'}});
-    map.addLayer({id:'selected-rail-pattern',type:'line',source:'selected',filter:['in',['get','kind'],['literal',['highspeed','railway']]],paint:{'line-color':'#ffffff','line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8],'line-dasharray':[2,2]},layout:{'line-cap':'butt','line-join':'round'}});
+    map.addLayer({id:'selected-road',type:'line',source:'selected',filter:['!', ['in',['get','kind'],['literal',['highspeed','railway']]]],paint:{'line-color':['coalesce',['get','selectionColor'],'#14613f'],'line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8]},layout:{'line-cap':'round','line-join':'round'}});
+    map.addLayer({id:'selected-rail-pattern',type:'line',source:'selected',filter:['in',['get','kind'],['literal',['highspeed','railway']]],paint:{'line-pattern':['match',['get','kind'],'highspeed','rail-highspeed','rail-railway'],'line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8],'line-opacity':1},layout:{'line-cap':'butt','line-join':'round'}});
     map.addLayer({id:'selected-hit',type:'line',source:'selected',paint:{'line-color':'#000','line-opacity':0,'line-width':14}});
     addLabels();
     $('loading').hidden = true;
@@ -220,7 +231,7 @@ function scheduleNetwork(){clearTimeout(precisionTimer);precisionTimer=setTimeou
 function updateNetworkVisibility(){
   for(const {kind,prefix} of layerStyles){
     const visible=kindVisible(kind);
-    for(const suffix of ['network','network-pattern','hit','precise','precise-pattern','precise-hit']){
+    for(const suffix of ['network','hit','precise','precise-hit']){
       const id=prefix+'-'+suffix;if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',visible?'visible':'none');
     }
   }
@@ -244,13 +255,19 @@ function updateRailLegend(){
 
 function updateNetworkEmphasis(){
   const factor=[...selections.values()].some(entry=>entry.road.hasGeometry&&!entry.error) ? .07 : 1;
-  for(const {prefix} of layerStyles){
+  for(const {kind,prefix,opacity} of layerStyles){
+    // Opaque rail strokes keep shared infrastructure from darkening on overlap.
+    if(kind==='highspeed'||kind==='railway'){
+      for(const suffix of ['network','precise']){
+        const id=prefix+'-'+suffix;
+        if(map.getLayer(id))map.setPaintProperty(id,'line-pattern','rail-'+kind+(factor===1?'':'-muted'));
+      }
+      continue;
+    }
     const overview=prefix+'-network';
-    for(const id of [overview,overview+'-pattern'])if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',['interpolate',['linear'],['zoom'],3,.52*factor,5,.7*factor,7,.85*factor]);
-  }
-  for(const {prefix,opacity} of layerStyles){
+    if(map.getLayer(overview))map.setPaintProperty(overview,'line-opacity',['interpolate',['linear'],['zoom'],3,.52*factor,5,.7*factor,7,.85*factor]);
     const precise=prefix+'-precise';
-    for(const id of [precise,precise+'-pattern'])if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',opacity*factor);
+    if(map.getLayer(precise))map.setPaintProperty(precise,'line-opacity',opacity*factor);
   }
 }
 
@@ -286,18 +303,16 @@ async function loadDataset() {
     const source=type==='highspeed'||type==='railway'?'rail-network':'network';
     const rail=type==='highspeed'||type==='railway';
     const width=rail?['interpolate',['linear'],['zoom'],3,1.8,5,2.2,7,2.8]:['interpolate',['linear'],['zoom'],3,.5,5,.85,7,1.5];
-    const paint={'line-color':color,'line-opacity':['interpolate',['linear'],['zoom'],3,.52,5,.7,7,.85],'line-width':width};
+    const paint={...(rail?{'line-pattern':'rail-'+type}:{'line-color':color}),'line-opacity':rail?1:['interpolate',['linear'],['zoom'],3,.52,5,.7,7,.85],'line-width':width};
     map.addLayer({id:prefix+'-network',type:'line',source,minzoom,maxzoom:7,layout:rounded,filter,paint},'selected-halo');
-    if(rail)map.addLayer({id:prefix+'-network-pattern',type:'line',source,minzoom,maxzoom:7,layout:{'line-cap':'butt','line-join':'round'},filter,paint:{...paint,'line-color':'#ffffff','line-dasharray':[2,2]}},'selected-halo');
     map.addLayer({id:prefix+'-hit',type:'line',source,minzoom,maxzoom:7,filter,paint:{'line-color':'#000','line-opacity':0,'line-width':10}},'selected-halo');
   }
   map.addSource('network-precise',{type:'geojson',data:empty(),tolerance:0,maxzoom:18,buffer:128});
   for(const {kind,prefix,color,opacity} of layerStyles){
     const filter=['==',['get','kind'],kind];
     const rail=kind==='highspeed'||kind==='railway';
-    const paint={'line-color':color,'line-width':['interpolate',['linear'],['zoom'],7,rail?2.8:kind==='national'?1:1.4,14,rail?4:2.8,18,6],'line-opacity':opacity};
+    const paint={...(rail?{'line-pattern':'rail-'+kind}:{'line-color':color}),'line-width':['interpolate',['linear'],['zoom'],7,rail?2.8:kind==='national'?1:1.4,14,rail?4:2.8,18,6],'line-opacity':opacity};
     map.addLayer({id:prefix+'-precise',type:'line',source:'network-precise',minzoom:7,layout:rounded,filter,paint},'selected-halo');
-    if(rail)map.addLayer({id:prefix+'-precise-pattern',type:'line',source:'network-precise',minzoom:7,layout:{'line-cap':'butt','line-join':'round'},filter,paint:{...paint,'line-color':'#ffffff','line-dasharray':[2,2]}},'selected-halo');
     map.addLayer({id:prefix+'-precise-hit',type:'line',source:'network-precise',minzoom:7,filter,paint:{'line-color':'#000','line-opacity':0,'line-width':12}},'selected-halo');
   }
   updateNetworkVisibility();

@@ -68,7 +68,7 @@ def main():
         chunks,vertices=db.execute('SELECT count(*),sum(json_array_length(coordinates)) FROM segments').fetchone()
     report['preciseNetwork']={**report.get('preciseNetwork',{}),'chunks':chunks,'vertices':vertices}
     save(DATA/'report.json',report)
-    manifest=json.loads((DATA/'display/manifest.json').read_bytes());manifest['version']='20261013-rail1';manifest['railwayRoutes']=len(rails)
+    manifest=json.loads((DATA/'display/manifest.json').read_bytes());manifest['version']='20261013-rail2';manifest['railwayRoutes']=len(rails)
     manifest['railwayRouteBytes']={tier:sum((DATA/'display/routes'/tier/f"{r['id']}.geojson").stat().st_size for r in rails) for tier in TIERS}
     manifest['railwayOverviewBytes']=(DATA/'display/railways-overview.geojson').stat().st_size
     manifest['railwayOverviewGzipBytes']=(DATA/'display/railways-overview.geojson.gz').stat().st_size

@@ -16,11 +16,12 @@ ROOT=Path(__file__).resolve().parents[1]
 DATA=ROOT/'data'
 HSR=re.compile(r'高铁|高速(?:铁路|线|$)|客运专线|客专')
 LOCAL=re.compile(r'联络|联线|疏解|专用|货场|编组|动车所|动车段|动车走行|车辆段|机务|到达线|出发线|进站线|出站线|轨道交通|地铁|轻轨|磁浮|\d+号线|(?:特大桥|大桥|隧道)$')
+TRAIN_SERVICE=re.compile(r'列车|车次|^[GDCZTKLYS]\s*\d{1,5}(?!\d)|^\d{3,5}(?:次|\s)',re.I)
 
 def clean_name(name):
     name=re.sub(r'[（(][^()（）]*[)）]','',name).strip()
     name=re.sub(r'(上行|下行|上下行|正线)$','',name).strip()
-    if not re.search(r'[\u4e00-\u9fff]',name) or LOCAL.search(name):return ''
+    if not re.search(r'[\u4e00-\u9fff]',name) or LOCAL.search(name) or TRAIN_SERVICE.search(name):return ''
     if re.fullmatch(r'(?:南|北|东|西)?(?:环线|支线|正线|铁路|高铁|高速铁路|货运线|机场线|机场铁路)',name):return ''
     return name
 

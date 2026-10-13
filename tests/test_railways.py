@@ -17,7 +17,7 @@ class RailwayClassificationTests(unittest.TestCase):
         self.assertEqual(rail_kind('京沪高铁',{},[{'highspeed':'yes'}]),'highspeed')
 
     def test_services_and_station_tracks_do_not_become_line_names(self):
-        for name in ['G1234','京沪上行进站线','京沪京广联络线','车辆段专用线','地铁1号线','南环线','丹昆特大桥','丰台动车走行A线']:
+        for name in ['G1234','5619列车','5620列车','T6607 甘谷-兰州','G1234次列车','京沪上行进站线','京沪京广联络线','车辆段专用线','地铁1号线','南环线','丹昆特大桥','丰台动车走行A线']:
             self.assertEqual(clean_name(name),'',name)
 
 class PreparedRailwayTests(unittest.TestCase):
@@ -33,6 +33,11 @@ class PreparedRailwayTests(unittest.TestCase):
         self.assertIn(356778,h['sourceRelations']);self.assertIn(163022,r['sourceRelations'])
         self.assertNotEqual(h['id'],r['id'])
         self.assertGreater(h['wayCount'],1000);self.assertGreater(r['wayCount'],2000)
+
+    def test_service_relations_mislabeled_as_railway_are_excluded(self):
+        for record in self.records:
+            self.assertTrue(clean_name(record['name']),record['name'])
+            self.assertNotIn(record['name'],('5619列车','5620列车','T6607 甘谷-兰州'))
 
     def test_geometry_stays_in_china_and_has_no_missing_routes(self):
         border=json.loads((ROOT/'data/china.geojson').read_bytes())
