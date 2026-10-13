@@ -3,6 +3,7 @@ from pathlib import Path
 import gzip
 import json
 import unittest
+import sys
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 from shapely.geometry import shape
@@ -10,6 +11,8 @@ from shapely.ops import unary_union
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'data'
+sys.path.insert(0,str(ROOT/'scripts'))
+from transport_coverage import coverage
 
 
 class DatasetTests(unittest.TestCase):
@@ -18,7 +21,7 @@ class DatasetTests(unittest.TestCase):
         cls.catalog = json.loads((DATA / 'catalog.json').read_text(encoding='utf-8'))
         cls.report = json.loads((DATA / 'report.json').read_text(encoding='utf-8'))
         cls.by_id = {r['id']: r for r in cls.catalog}
-        cls.mask = unary_union([shape(f['geometry']) for f in json.loads((DATA / 'china.geojson').read_text(encoding='utf-8'))['features']]).buffer(.000002)
+        cls.mask = coverage(DATA).buffer(.000002)
 
     def test_catalog_and_geometry_counts(self):
         self.assertEqual(len(self.catalog), len(self.by_id))
@@ -61,7 +64,9 @@ class DatasetTests(unittest.TestCase):
 class OfflineServerTests(unittest.TestCase):
     def test_page_is_map_and_runtime_is_local(self):
         with urlopen('http://127.0.0.1:8766/') as response:
-            self.assertIn('中国公路图谱', response.read().decode('utf-8'))
+            page = response.read().decode('utf-8')
+            self.assertIn('id="map"', page)
+            self.assertIn('id="road-list"', page)
             self.assertIn("connect-src 'self'", response.headers['Content-Security-Policy'])
         with urlopen('http://127.0.0.1:8766/api/health') as response:
             health = json.loads(response.read())

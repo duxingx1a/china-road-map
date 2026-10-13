@@ -1,0 +1,32 @@
+{
+  "base": "https://ydl66.top/map/",
+  "checks": "passed",
+  "restoredRoutes": 17,
+  "g2518DisplayTiersByteIdentical": true,
+  "offshoreViewportWitnesses": [
+    {
+      "route": "expressway-G2518",
+      "structure": "bridge",
+      "sourceWay": 1298785019,
+      "viewportRestored": true
+    },
+    {
+      "route": "expressway-G2518",
+      "structure": "tunnel",
+      "sourceWay": 689375219,
+      "viewportRestored": true
+    },
+    {
+      "route": "expressway-G40",
+      "structure": "tunnel",
+      "sourceWay": 176663628,
+      "viewportRestored": true
+    },
+    {
+      "route": "provincial-370000-S85",
+      "structure": "bridge",
+      "sourceWay": 313572398,
+      "viewportRestored": true
+    }
+  ]
+}

@@ -1,18 +1,18 @@
 {
-  "updatedAt": "2026-10-13T12:11:57.204040+00:00",
+  "updatedAt": "2026-10-13T14:06:21.044721+00:00",
   "url": "https://ydl66.top/map/",
   "server": "ydl-server",
   "project": "/root/ydl-projects/map",
   "backend": "rust",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "compiledOn": "local Ubuntu-22.04 WSL",
   "target": "x86_64-unknown-linux-musl",
   "serverCompilation": false,
-  "image": "china-road-map:1.1.1",
-  "imageId": "sha256:66a945d3975ab6264434f2d6de01677406795e62747b04bc0fa77674783835fd",
-  "imageBytesOnServer": 5225298,
-  "runtimeDataBytesOnServer": 4008383303,
-  "displayDataBytesOnServer": 775762328,
+  "image": "china-road-map:1.1.2",
+  "imageId": "sha256:fa0f2a1e37f68a7b6003d4d2372878c0d32ac5e5f85c97f5e7491fe201cf10f1",
+  "imageBytesOnServer": 5225316,
+  "runtimeDataBytesOnServer": 4008672414,
+  "displayDataBytesOnServer": 775908367,
   "memoryLimitMiB": 256,
   "cpuLimit": 1.25,
   "health": "healthy",
@@ -35,7 +35,10 @@
     "roadPresentation": "G0711 search card, selected list and detail verified in production browser; G0613, G318 and Guangxi S60 checked against local catalog",
     "mobile": "Local browser: 320x568 and 390x844 portrait, 844x390 landscape; drag up/down, search and route selection. Production 390px: toolbar one row, collapsed drawer 104px, detail 70px, no horizontal overflow. Desktop 1280px: sidebar 330px and original two-row toolbar.",
     "railwayTestsPassed": 5,
-    "railwayPublicChecks": "passed; display parity, separate kinds, service records and old display files removed, original resources blocked"
+    "railwayPublicChecks": "passed; display parity, separate kinds, service records and old display files removed, original resources blocked",
+    "coastalTestsPassed": 5,
+    "coastalPublicChecks": "passed; G2518 bridge and tunnel present in all display tiers and viewport; G40 tunnel and Jiaozhou Bay bridge queried; 2587 unrelated route files byte-identical",
+    "pythonTestsPassed": 37
   },
   "ui": {
     "hoverPrefetchDelayMs": 160,
@@ -80,5 +83,15 @@
       "5620列车",
       "T6607 甘谷-兰州"
     ]
+  },
+  "coastalCrossings": {
+    "routesRestored": 17,
+    "sourceSnapshot": "2026-10-12T20:21:35Z",
+    "originalCoordinatesRetained": true,
+    "administrativeBordersUnchanged": true,
+    "offshoreStructureFractionAtLeast": 0.8,
+    "allChainEndpointsInChineseLand": true,
+    "sourceDataUploaded": false,
+    "displayVersion": "20261013-coast1"
   }
 }

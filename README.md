@@ -2,7 +2,7 @@
 
 沿着编号，读懂中国。搜索国道、国家高速、省级高速、高铁与普速铁路，查看线路走向，最多十条路线同屏对比。
 
-**在线体验：[ydl66.top/map/](https://ydl66.top/map/)** · 当前稳定版：**v1.1.1**
+**在线体验：[ydl66.top/map/](https://ydl66.top/map/)** · 当前稳定版：**v1.1.2**
 
 运行时使用本地矢量地图与道路文件，不依赖在线地图 API、CDN、在线字体或外部遥测。本机服务可以离线运行，公开部署时浏览器从自己的服务器按需读取展示数据。
 
@@ -13,6 +13,8 @@
 ![电脑端](docs/images/desktop.png)
 
 ![铁路图层](docs/images/rail-contrast.png)
+
+![G2518 深中通道跨海段](docs/images/g2518.png)
 
 | 手机地图 | 全屏路线列表 |
 | --- | --- |
@@ -62,9 +64,16 @@ python -m venv .prepare-venv --system-site-packages
 .\.prepare-venv\Scripts\python.exe scripts/download_basemap.py
 .\.prepare-venv\Scripts\python.exe scripts/build_basemap.py
 .\.prepare-venv\Scripts\python.exe scripts/prepare_city_labels.py
-python scripts/build_network_index.py
 .\.prepare-venv\Scripts\python.exe scripts/build_display_data.py
 python scripts/precompress.py data
+```
+
+`prepare_data.py` 已包含跨海桥隧恢复与原始空间索引构建。对于已有完整道路和展示索引的数据，单独更新桥隧可执行：
+
+```powershell
+.\.prepare-venv\Scripts\python.exe scripts/extract_crossing_source.py
+.\.prepare-venv\Scripts\python.exe scripts/restore_coastal_crossings.py
+.\.prepare-venv\Scripts\python.exe scripts/rebuild_changed_routes.py --version 20261013-coast1
 ```
 
 铁路使用独立的中国 OSM 快照，先完成上面的道路和展示索引，再执行：
@@ -77,6 +86,8 @@ python scripts/precompress.py data
 ```
 
 只提取铁路基础设施关系和有名称的运营主轨，不把车次当线路。即使源关系误标为 `route=railway`，仍排除含“列车/车次”或车次前缀的名称，例如 `5619列车`、`T6607 甘谷-兰州`。排除站内服务轨道、联络/动车走行线、单独桥隧名称、地铁、有轨电车、废弃及在建轨道；分类依据线路名称、高速属性和成员轨道标签，不仅凭时速。铁路原始轨道证据与下载源留在本机，生产只接收运行索引和展示副本。重建道路后应再次生成展示索引并重新集成铁路。
+
+单独重跑道路归属检查后，应再次运行跨海桥隧恢复与索引更新。恢复仅使用原始坐标，桥隧链的所有端点必须在中国陆地、离岸段至少80%有桥隧结构依据，并受沿海邻域与长度限制；无法确认的结构留待复核。
 
 准备依赖与 Rust 依赖须提前安装。停止服务后再替换数据库；更新展示文件时同步修改前端 `DISPLAY_VERSION`，避免旧缓存。
 
@@ -97,7 +108,7 @@ python tests/verify_rust_server.py --base https://ydl66.top/map/ --public
 
 ## 数据范围与保护
 
-国家目录基于《国家公路网规划（2022年）》，省级高速来自 OSM 已识别编号。实际道路按标签、路线关系提取并裁剪，存疑路段另存复核证据。自动筛查不等于官方逐段认证。
+国家目录基于《国家公路网规划（2022年）》，省级高速来自 OSM 已识别编号。实际道路按标签、路线关系提取并裁剪，存疑路段另存复核证据。省级轮廓只作为陆地区域；两端位于中国陆地、有结构标签和连续原始节点的跨海桥隧单独恢复，避免把海上路段误裁掉。交通走廊证据单独保存，不修改行政国界。自动筛查不等于官方逐段认证。
 
 规划不代表已通车，部分路段不代表全线连续；缺口不会用直线补齐。省级高速尚未证实全量覆盖，2022年目录不能代表此后全部编号调整。行政轮廓与近似坐标转换不能用于精密边界测量。本项目用于公路和铁路浏览，不提供导航和通行状态认证。
 

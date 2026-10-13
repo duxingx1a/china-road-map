@@ -1,6 +1,6 @@
 services:
   map:
-    image: china-road-map:1.1.1
+    image: china-road-map:1.1.2
     container_name: china-road-map
     restart: unless-stopped
     read_only: true

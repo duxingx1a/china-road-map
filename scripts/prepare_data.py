@@ -304,5 +304,5 @@ if __name__ == '__main__':
     # Raw ref/relation extraction is only an input, never the final displayed dataset.
     import subprocess
     import sys
-    for script in ('extract_road_evidence.py', 'audit_routes.py', 'build_network_index.py'):
+    for script in ('extract_road_evidence.py', 'audit_routes.py', 'extract_crossing_source.py', 'restore_coastal_crossings.py', 'build_network_index.py'):
         subprocess.run([sys.executable, str(ROOT / 'scripts' / script)], check=True)

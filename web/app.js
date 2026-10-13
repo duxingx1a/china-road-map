@@ -12,7 +12,7 @@ const viewNumbers=(new URLSearchParams(location.search).get('view')||'').split('
 const initialView=viewNumbers.length===3&&viewNumbers.every(Number.isFinite)&&viewNumbers[0]>=72&&viewNumbers[0]<=136&&viewNumbers[1]>=3&&viewNumbers[1]<=55&&viewNumbers[2]>=1.3&&viewNumbers[2]<=18?viewNumbers:null;
 let map, catalog = [], byId = new Map(), selected = null, kind = 'all', displayed = 80, result = [], toastTimer;
 const selections=new Map();
-const DISPLAY_VERSION='20261013-rail2';
+const DISPLAY_VERSION='20261013-coast1';
 const routeTier=()=>map?.getZoom()>=12?'detail':map?.getZoom()>=9?'standard':'overview';
 const routeKey=id=>id+'@'+routeTier();
 const routeLoader=atlasRoutes.create({fetchRoute:(key,signal)=>{const [id,tier]=key.split('@');return readJSON(`/data/display/routes/${tier}/${encodeURIComponent(id)}.geojson?v=${DISPLAY_VERSION}`,{signal,withSize:true});}});
