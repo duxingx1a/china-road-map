@@ -127,6 +127,8 @@ def main():
     reports = []
     overview = []
     for count, record in enumerate(catalog):
+        if record['kind'] in ('highspeed','railway'):
+            continue
         rid = record['id']
         rows = db.execute('SELECT way,tags,relations,coordinates,provinces FROM evidence WHERE route=? ORDER BY way', (rid,)).fetchall()
         if not rows:
@@ -203,7 +205,7 @@ def main():
     save(DATA / 'catalog.json',catalog)
     save(DATA / 'overview.geojson', {'type':'FeatureCollection','features':overview})
     report = {'generatedAt':datetime.now(timezone.utc).isoformat(),'ruleVersion':RULE_VERSION,
-              'routesChecked':len(catalog),'routesWithSource':sum(r['sourceWays']>0 for r in reports),
+              'routesChecked':len(reports),'routesWithSource':sum(r['sourceWays']>0 for r in reports),
               'routesWithFindings':sum(bool(r['reviewWays']+r['excludedWays']) for r in reports),
               'totals':dict(totals),'reasons':dict(reason_counts),'routes':reports,
               'method':'全库逐路段检查highway/access/ref、路线关系编号、角色和省级网络归属；300米邻近连接筛查，小分量距主要分量超过20公里标记待核对；省级高速远距异名分量超过50公里且主分量长度超过其2倍时隔离。空间距离为近似筛查值。',

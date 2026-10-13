@@ -1,0 +1,56 @@
+{
+  "base": "http://127.0.0.1:18766",
+  "railwayCategories": {
+    "highspeed": 206,
+    "railway": 1024
+  },
+  "checks": "passed",
+  "displayFilesByteIdentical": true,
+  "separateViewportKinds": {
+    "highspeed": 63,
+    "railway": 249
+  },
+  "privateResourcesBlocked": true,
+  "transfers": {
+    "data/catalog.json?v=20261013-rail1": {
+      "bytes": 259671,
+      "gzip": true
+    },
+    "data/display/routes/overview/highspeed-94d73c8ca92c.geojson": {
+      "bytes": 2950,
+      "gzip": true
+    },
+    "data/display/routes/standard/highspeed-94d73c8ca92c.geojson": {
+      "bytes": 13845,
+      "gzip": true
+    },
+    "data/display/routes/detail/highspeed-94d73c8ca92c.geojson": {
+      "bytes": 41006,
+      "gzip": true
+    },
+    "data/display/routes/overview/railway-25cb8d35dc13.geojson": {
+      "bytes": 5176,
+      "gzip": true
+    },
+    "data/display/routes/standard/railway-25cb8d35dc13.geojson": {
+      "bytes": 23648,
+      "gzip": true
+    },
+    "data/display/routes/detail/railway-25cb8d35dc13.geojson": {
+      "bytes": 79575,
+      "gzip": true
+    },
+    "data/display/railways-overview.geojson": {
+      "bytes": 586268,
+      "gzip": true
+    },
+    "api/network?bbox=116,31,122,40&zoom=7&kinds=highspeed": {
+      "bytes": 34098,
+      "gzip": true
+    },
+    "api/network?bbox=116,31,122,40&zoom=7&kinds=railway": {
+      "bytes": 55991,
+      "gzip": true
+    }
+  }
+}

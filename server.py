@@ -106,7 +106,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(400,'Invalid bounding box')
             return
         types = list(dict.fromkeys(kinds.split(',')))
-        if not types or any(kind not in ('national','expressway','provincial') for kind in types):
+        if not types or any(kind not in ('national','expressway','provincial','highspeed','railway') for kind in types):
             self.send_error(400,'Invalid road kinds')
             return
         path = DATA / 'network.sqlite'

@@ -54,7 +54,7 @@ class WholeDatasetQualityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.report=json.loads((ROOT / 'data/quality-report.json').read_text(encoding='utf8'))
-        cls.catalog=json.loads((ROOT / 'data/catalog.json').read_text(encoding='utf8'))
+        cls.catalog=[r for r in json.loads((ROOT / 'data/catalog.json').read_text(encoding='utf8')) if r['kind'] not in ('highspeed','railway')]
 
     def test_every_source_assignment_has_one_audit_outcome(self):
         r=self.report

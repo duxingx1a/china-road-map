@@ -3,13 +3,16 @@ const appBase = new URL('./', location.href);
 const resourceURL = path => new URL(path.replace(/^\//, ''), appBase).href;
 const $ = id => document.getElementById(id);
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const labels = {national:'普通国道',expressway:'国家高速',provincial:'省级高速'};
+const labels = {national:'普通国道',expressway:'国家高速',provincial:'省级高速',highspeed:'高铁',railway:'普速铁路'};
+const isRail=road=>road.kind==='highspeed'||road.kind==='railway';
+const routeLabel=road=>isRail(road)?road.name:road.code;
+const layerStyles=[{kind:'national',prefix:'national',color:'#b95555',opacity:.85},{kind:'expressway',prefix:'express',color:'#387457',opacity:.9},{kind:'provincial',prefix:'provincial',color:'#387457',opacity:.9},{kind:'highspeed',prefix:'highspeed',color:'#b4232f',opacity:.8},{kind:'railway',prefix:'railway',color:'#292d30',opacity:.8}];
 const chinaView = [[73,17],[135.6,54.5]];
 const viewNumbers=(new URLSearchParams(location.search).get('view')||'').split(',').map(Number);
 const initialView=viewNumbers.length===3&&viewNumbers.every(Number.isFinite)&&viewNumbers[0]>=72&&viewNumbers[0]<=136&&viewNumbers[1]>=3&&viewNumbers[1]<=55&&viewNumbers[2]>=1.3&&viewNumbers[2]<=18?viewNumbers:null;
 let map, catalog = [], byId = new Map(), selected = null, kind = 'all', displayed = 80, result = [], toastTimer;
 const selections=new Map();
-const DISPLAY_VERSION='20261013';
+const DISPLAY_VERSION='20261013-rail1';
 const routeTier=()=>map?.getZoom()>=12?'detail':map?.getZoom()>=9?'standard':'overview';
 const routeKey=id=>id+'@'+routeTier();
 const routeLoader=atlasRoutes.create({fetchRoute:(key,signal)=>{const [id,tier]=key.split('@');return readJSON(`/data/display/routes/${tier}/${encodeURIComponent(id)}.geojson?v=${DISPLAY_VERSION}`,{signal,withSize:true});}});
@@ -21,18 +24,21 @@ const tileLoader=atlasTiles.create({fetchTile:async(url,signal)=>{
 }});
 let hoverRoute=null,hoverTimer,geometryRevision=0,renderedGeometryRevision=-1;
 const selectionColors={national:['#b4232f','#ca514d','#9b3650','#db6d5c','#8a2533','#b74f66','#b14537','#923846','#cc4c69','#a6645b'],expressway:['#14613f','#368251','#276d60','#55764b','#0c7756','#5c9258','#396a41','#58826a','#416f5b','#457832']};
-let nationalVisible=true,expressVisible=true,precisionTimer;
+let nationalVisible=true,expressVisible=true,highspeedVisible=false,railwayVisible=false,precisionTimer;
+const kindVisible=kind=>kind==='national'?nationalVisible:kind==='highspeed'?highspeedVisible:kind==='railway'?railwayVisible:expressVisible;
 let ready = false, mapLoaded;
 const viewBookmarks=atlasViews.bookmarks();
 let settingZoomLimit=false;
 let provinces = [];
 let basemapVisible=true,basemapRegions=new Set(),precisionPending,precisionBounds=null,precisionTier=null,precisionKinds=null;
+let railOverviewLoaded=false,railOverviewPending=null;
 const empty = () => ({type:'FeatureCollection',features:[]});
 const isRouteBusy = entry => Boolean(entry?.loading||entry?.rendering);
 const compactProvince = s => s.replace(/壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区|省|市/g, '');
 const mobileDrawer=atlasMobile.create({sidebar:$('road-drawer'),toggle:$('drawer-toggle'),close:$('drawer-close'),mapPanel:document.querySelector('.map-panel'),search:$('search'),header:document.querySelector('.header'),workspace:document.querySelector('.workspace'),onLayout:()=>map?.resize()});
 
 function roadPresentation(road){
+  if(isRail(road))return {title:road.name,subtitle:[labels[road.kind],road.from&&road.to?road.from+'—'+road.to:road.provinceName].filter(Boolean).join(' · ')};
   const clean=value=>String(value||'').replace(/[（(][^（）()]*?(?:方向|段)[）)]/g,'').trim();
   const candidates=[road.name,...(road.aliases||[])].map(clean);
   let title;
@@ -49,6 +55,7 @@ function roadPresentation(road){
 }
 
 function roadShield(road,compact=false){
+  if(isRail(road))return `<span class="shield ${road.kind}${compact?' compact':''}"><span class="shield-code">${road.kind==='highspeed'?'高铁':'普铁'}</span></span>`;
   const heading=road.kind==='expressway'?'国家高速':road.kind==='provincial'?compactProvince(road.provinceName||'省级')+'高速':'';
   return `<span class="shield ${road.kind}${compact?' compact':''}">${heading&&!compact?`<span class="shield-heading">${escapeHTML(heading)}</span>`:''}<span class="shield-code">${escapeHTML(road.code)}</span></span>`;
 }
@@ -102,6 +109,7 @@ function initMap(china) {
     map.addSource('selected',{type:'geojson',data:empty(),tolerance:0,maxzoom:18,buffer:128});
     map.addLayer({id:'selected-halo',type:'line',source:'selected',paint:{'line-color':'#ffffff','line-width':['interpolate',['linear'],['zoom'],3,5,9,9],'line-opacity':.92},layout:{'line-cap':'round','line-join':'round'}});
     map.addLayer({id:'selected-road',type:'line',source:'selected',paint:{'line-color':['coalesce',['get','selectionColor'],'#14613f'],'line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8]},layout:{'line-cap':'round','line-join':'round'}});
+    map.addLayer({id:'selected-rail-pattern',type:'line',source:'selected',filter:['in',['get','kind'],['literal',['highspeed','railway']]],paint:{'line-color':'#ffffff','line-width':['interpolate',['linear'],['zoom'],3,2.7,9,4.8],'line-dasharray':[2,2]},layout:{'line-cap':'butt','line-join':'round'}});
     map.addLayer({id:'selected-hit',type:'line',source:'selected',paint:{'line-color':'#000','line-opacity':0,'line-width':14}});
     addLabels();
     $('loading').hidden = true;
@@ -189,10 +197,10 @@ async function loadBasemap() {
 
 async function updateDetailedNetwork() {
   if(!map.getSource('network-precise'))return;
-  if(map.getZoom()<7||(!nationalVisible&&!expressVisible)){precisionPending?.abort();return;}
+  if(map.getZoom()<7||!layerStyles.some(layer=>kindVisible(layer.kind))){precisionPending?.abort();return;}
   const bounds=map.getBounds();
   const w=bounds.getWest(),s=bounds.getSouth(),e=bounds.getEast(),n=bounds.getNorth();
-  const tier=routeTier(),kinds=[...(nationalVisible?['national']:[]),...(expressVisible?['expressway','provincial']:[])],kindKey=kinds.join(',');
+  const tier=routeTier(),kinds=layerStyles.filter(layer=>kindVisible(layer.kind)).map(layer=>layer.kind),kindKey=kinds.join(',');
   if(precisionBounds&&tier===precisionTier&&kindKey===precisionKinds&&w>=precisionBounds[0]&&s>=precisionBounds[1]&&e<=precisionBounds[2]&&n<=precisionBounds[3])return;
   precisionPending?.abort();
   const controller=precisionPending=new AbortController();
@@ -210,23 +218,39 @@ async function updateDetailedNetwork() {
 function scheduleNetwork(){clearTimeout(precisionTimer);precisionTimer=setTimeout(updateDetailedNetwork,450);}
 
 function updateNetworkVisibility(){
-  for(const [prefix,visible] of [['national',nationalVisible],['express',expressVisible],['provincial',expressVisible]]){
-    for(const suffix of ['network','hit','precise','precise-hit']){
+  for(const {kind,prefix} of layerStyles){
+    const visible=kindVisible(kind);
+    for(const suffix of ['network','network-pattern','hit','precise','precise-pattern','precise-hit']){
       const id=prefix+'-'+suffix;if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',visible?'visible':'none');
     }
   }
+  updateRailLegend();
+  if(highspeedVisible||railwayVisible)loadRailOverview();
   precisionBounds=null;scheduleNetwork();
+}
+
+async function loadRailOverview(){
+  if(!map?.getSource('rail-network'))return;
+  if(railOverviewLoaded)return;
+  if(railOverviewPending)return railOverviewPending;
+  const control=document.querySelector('.rail-actions');control.setAttribute('aria-busy','true');
+  railOverviewPending=readJSON('/data/display/railways-overview.geojson?v='+DISPLAY_VERSION).then(data=>{map.getSource('rail-network').setData(data);railOverviewLoaded=true;}).catch(error=>{console.error('Railway overview:',error);toast('铁路概览加载失败，点击铁路开关可重试。');}).finally(()=>{railOverviewPending=null;control.setAttribute('aria-busy','false');});
+  return railOverviewPending;
+}
+
+function updateRailLegend(){
+  for(const type of ['highspeed','railway'])document.querySelector(`[data-rail-legend="${type}"]`).hidden=!kindVisible(type)&&![...selections.values()].some(entry=>entry.road.kind===type);
 }
 
 function updateNetworkEmphasis(){
   const factor=[...selections.values()].some(entry=>entry.road.hasGeometry&&!entry.error) ? .07 : 1;
-  for(const prefix of ['national','express','provincial']){
+  for(const {prefix} of layerStyles){
     const overview=prefix+'-network';
-    if(map.getLayer(overview))map.setPaintProperty(overview,'line-opacity',['interpolate',['linear'],['zoom'],3,.52*factor,5,.7*factor,7,.85*factor]);
+    for(const id of [overview,overview+'-pattern'])if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',['interpolate',['linear'],['zoom'],3,.52*factor,5,.7*factor,7,.85*factor]);
   }
-  for(const [prefix,opacity] of [['national',.85],['express',.9]]){
+  for(const {prefix,opacity} of layerStyles){
     const precise=prefix+'-precise';
-    if(map.getLayer(precise))map.setPaintProperty(precise,'line-opacity',opacity*factor);
+    for(const id of [precise,precise+'-pattern'])if(map.getLayer(id))map.setPaintProperty(id,'line-opacity',opacity*factor);
   }
 }
 
@@ -244,30 +268,40 @@ async function addPrefectureLabels(){
 }
 
 async function loadDataset() {
-  [catalog] = await Promise.all([readJSON('/data/catalog.json'),mapLoaded]);
+  [catalog] = await Promise.all([readJSON('/data/catalog.json?v='+DISPLAY_VERSION),mapLoaded]);
   byId = new Map(catalog.map(r => [r.id,r]));
   catalog.forEach(r => {
-    r.searchText = [r.code,r.name,r.provinceName,...r.aliases,...r.provinces].join(' ').toUpperCase().replace(/\s/g,'');
+    r.searchText = [r.code,r.name,roadPresentation(r).title,r.railwayRef,r.from,r.to,r.provinceName,...r.aliases,...r.provinces].join(' ').toUpperCase().replace(/\s/g,'');
   });
   ready=true;
   updateList();
   await loadBasemap();
   await addPrefectureLabels();
   map.addSource('network',{type:'geojson',data:resourceURL('/data/display/overview.geojson?v='+DISPLAY_VERSION),tolerance:.7});
+  map.addSource('rail-network',{type:'geojson',data:empty(),tolerance:.7});
   const rounded={'line-cap':'round','line-join':'round'};
-  for(const [type,color] of [['national','#b95555'],['expressway','#387457'],['provincial','#387457']]){
-    const prefix=type==='expressway'?'express':type;
+  for(const {kind:type,prefix,color} of layerStyles){
     const filter=['==',['get','kind'],type];
     const minzoom=type==='provincial'?5.5:0;
-    map.addLayer({id:prefix+'-network',type:'line',source:'network',minzoom,maxzoom:7,layout:rounded,filter,paint:{'line-color':color,'line-opacity':['interpolate',['linear'],['zoom'],3,.52,5,.7,7,.85],'line-width':['interpolate',['linear'],['zoom'],3,.5,5,.85,7,1.5]}},'selected-halo');
-    map.addLayer({id:prefix+'-hit',type:'line',source:'network',minzoom,maxzoom:7,filter,paint:{'line-color':'#000','line-opacity':0,'line-width':10}},'selected-halo');
+    const source=type==='highspeed'||type==='railway'?'rail-network':'network';
+    const rail=type==='highspeed'||type==='railway';
+    const width=rail?['interpolate',['linear'],['zoom'],3,1.8,5,2.2,7,2.8]:['interpolate',['linear'],['zoom'],3,.5,5,.85,7,1.5];
+    const paint={'line-color':color,'line-opacity':['interpolate',['linear'],['zoom'],3,.52,5,.7,7,.85],'line-width':width};
+    map.addLayer({id:prefix+'-network',type:'line',source,minzoom,maxzoom:7,layout:rounded,filter,paint},'selected-halo');
+    if(rail)map.addLayer({id:prefix+'-network-pattern',type:'line',source,minzoom,maxzoom:7,layout:{'line-cap':'butt','line-join':'round'},filter,paint:{...paint,'line-color':'#ffffff','line-dasharray':[2,2]}},'selected-halo');
+    map.addLayer({id:prefix+'-hit',type:'line',source,minzoom,maxzoom:7,filter,paint:{'line-color':'#000','line-opacity':0,'line-width':10}},'selected-halo');
   }
   map.addSource('network-precise',{type:'geojson',data:empty(),tolerance:0,maxzoom:18,buffer:128});
-  map.addLayer({id:'national-precise',type:'line',source:'network-precise',minzoom:7,layout:rounded,filter:['==',['get','kind'],'national'],paint:{'line-color':'#b95555','line-width':['interpolate',['linear'],['zoom'],7,1,14,2,18,5],'line-opacity':.85}},'selected-halo');
-  map.addLayer({id:'express-precise',type:'line',source:'network-precise',minzoom:7,layout:rounded,filter:['!=',['get','kind'],'national'],paint:{'line-color':'#387457','line-width':['interpolate',['linear'],['zoom'],7,1.4,14,2.8,18,6],'line-opacity':.9}},'selected-halo');
-  for(const prefix of ['national','express'])map.addLayer({id:prefix+'-precise-hit',type:'line',source:'network-precise',minzoom:7,filter:prefix==='national'?['==',['get','kind'],'national']:['!=',['get','kind'],'national'],paint:{'line-color':'#000','line-opacity':0,'line-width':12}},'selected-halo');
+  for(const {kind,prefix,color,opacity} of layerStyles){
+    const filter=['==',['get','kind'],kind];
+    const rail=kind==='highspeed'||kind==='railway';
+    const paint={'line-color':color,'line-width':['interpolate',['linear'],['zoom'],7,rail?2.8:kind==='national'?1:1.4,14,rail?4:2.8,18,6],'line-opacity':opacity};
+    map.addLayer({id:prefix+'-precise',type:'line',source:'network-precise',minzoom:7,layout:rounded,filter,paint},'selected-halo');
+    if(rail)map.addLayer({id:prefix+'-precise-pattern',type:'line',source:'network-precise',minzoom:7,layout:{'line-cap':'butt','line-join':'round'},filter,paint:{...paint,'line-color':'#ffffff','line-dasharray':[2,2]}},'selected-halo');
+    map.addLayer({id:prefix+'-precise-hit',type:'line',source:'network-precise',minzoom:7,filter,paint:{'line-color':'#000','line-opacity':0,'line-width':12}},'selected-halo');
+  }
   updateNetworkVisibility();
-  const hitLayers=['selected-hit','national-hit','express-hit','provincial-hit','national-precise-hit','express-precise-hit'];
+  const hitLayers=['selected-hit',...layerStyles.flatMap(({prefix})=>[prefix+'-hit',prefix+'-precise-hit'])];
   map.on('click',e=>{
     const hits=map.queryRenderedFeatures(e.point,{layers:hitLayers});
     const f=hits.find(f=>f.layer.id==='selected-hit')||hits[0];
@@ -292,11 +326,12 @@ async function loadDataset() {
 function updateList(reset=true) {
   if (!ready) return;
   if (reset) { displayed=80;$('road-list').scrollTop=0; }
-  const query=$('search').value.toUpperCase().replace(/\s/g,'').replace(/国道|高速公路|高速/g,'');
+  const query=$('search').value.toUpperCase().replace(/\s/g,'');
+  const roadQuery=/铁路|高铁|客专/.test(query)?query:query.replace(/国道|高速公路|高速/g,'');
   const province=$('province').value;
-  result=catalog.filter(r => (kind==='all'||r.kind===kind) && (!province||r.provinces.includes(province)||r.provinceName===province) && (!query||r.searchText.includes(query)));
+  result=catalog.filter(r => (kind==='all'||r.kind===kind) && (!province||r.provinces.includes(province)||r.provinceName===province) && (!query||r.searchText.includes(query)||r.searchText.includes(roadQuery)));
   const exact = r => r.code===query||r.code==='G'+query||r.code==='S'+query;
-  result.sort((a,b)=>(query ? Number(exact(b))-Number(exact(a)) : 0)||({national:0,expressway:1,provincial:2}[a.kind]-{national:0,expressway:1,provincial:2}[b.kind])||a.code.localeCompare(b.code,'en',{numeric:true})||(a.provinceName||'').localeCompare(b.provinceName||'','zh'));
+  result.sort((a,b)=>(query ? Number(exact(b))-Number(exact(a)) : 0)||({national:0,expressway:1,provincial:2,highspeed:3,railway:4}[a.kind]-{national:0,expressway:1,provincial:2,highspeed:3,railway:4}[b.kind])||(isRail(a)&&isRail(b)?a.name.localeCompare(b.name,'zh'):a.code.localeCompare(b.code,'en',{numeric:true}))||(a.provinceName||'').localeCompare(b.provinceName||'','zh'));
   renderList();
 }
 
@@ -320,11 +355,12 @@ function syncSelections(){
     renderedGeometryRevision=geometryRevision;
   }
   updateNetworkEmphasis();
+  updateRailLegend();
   $('selections').hidden=!selections.size;
   $('selected-count').textContent=`${selections.size} / 10`;
   $('selected-list').innerHTML=[...selections.values()].map(entry=>{
     const {title,subtitle}=roadPresentation(entry.road);
-    return `<div class="selected-row ${selected?.id===entry.road.id?'active':''}"><button class="selection-focus" data-focus="${escapeHTML(entry.road.id)}" aria-busy="${isRouteBusy(entry)}"><i style="background:${entry.color}"></i>${roadShield(entry.road,true)}<span class="selection-name" title="${escapeHTML(title+' · '+subtitle)}"><span>${escapeHTML(title)}</span><small>${escapeHTML(subtitle)}</small></span>${entry.error?'<em>读取失败 · 点击重试</em>':isRouteBusy(entry)?'<em class="selection-loading"><span class="spinner" aria-hidden="true"></span>正在加载路线…</em>':''}</button><button data-remove="${escapeHTML(entry.road.id)}" aria-label="移除 ${escapeHTML(entry.road.code)}">×</button></div>`;
+    return `<div class="selected-row ${selected?.id===entry.road.id?'active':''}"><button class="selection-focus" data-focus="${escapeHTML(entry.road.id)}" aria-busy="${isRouteBusy(entry)}"><i style="background:${entry.color}"></i>${roadShield(entry.road,true)}<span class="selection-name" title="${escapeHTML(title+' · '+subtitle)}"><span>${escapeHTML(title)}</span><small>${escapeHTML(subtitle)}</small></span>${entry.error?'<em>读取失败 · 点击重试</em>':isRouteBusy(entry)?'<em class="selection-loading"><span class="spinner" aria-hidden="true"></span>正在加载路线…</em>':''}</button><button data-remove="${escapeHTML(entry.road.id)}" aria-label="移除 ${escapeHTML(routeLabel(entry.road))}">×</button></div>`;
   }).join('');
   history.replaceState(null,'',location.pathname+location.search+(selections.size?'#'+[...selections.keys()].join(','):''));
   updateSelectionStates();
@@ -339,7 +375,7 @@ function updateSelectionStates(){
   }
   const pending=[...selections.values()].filter(isRouteBusy);
   $('route-loading').hidden=!pending.length;
-  $('route-loading-text').textContent=pending.length?'正在加载 '+pending.map(entry=>entry.road.code).join('、')+'…':'';
+  $('route-loading-text').textContent=pending.length?'正在加载 '+pending.map(entry=>routeLabel(entry.road)).join('、')+'…':'';
   const entry=selected&&selections.get(selected.id),status=$('detail').querySelector('.route-status');
   $('detail').setAttribute('aria-busy',String(isRouteBusy(entry)));
   if(status){
@@ -376,19 +412,19 @@ async function selectRoad(road,{focus=true}={}){
   if(!entry){
     if(selections.size>=10){toast('最多可选 10 条路线，请先在左侧移除一条。');return;}
     const used=new Set([...selections.values()].map(e=>e.color));
-    entry={road,color:(selectionColors[road.kind]||selectionColors.expressway).find(c=>!used.has(c)),controller:new AbortController()};
+    entry={road,color:isRail(road)?layerStyles.find(layer=>layer.kind===road.kind).color:(selectionColors[road.kind]||selectionColors.expressway).find(c=>!used.has(c)),controller:new AbortController()};
     selections.set(road.id,entry);
   }else{entry.controller=new AbortController();entry.error=null;}
   const key=routeKey(road.id);entry.requestKey=key;
   entry.loading=Boolean(road.hasGeometry&&!routeLoader.isCached(key));
   if(focus)focusSelection(entry);else syncSelections();
-  if(!road.hasGeometry){toast('该编号已收录，暂未取得道路走向数据，无法在地图上显示。');return;}
+  if(!road.hasGeometry){toast('该线路已收录，暂未取得走向数据，无法在地图上显示。');return;}
   try{
     const data=await routeLoader.load(key);
     if(selections.get(road.id)!==entry||entry.controller.signal.aborted)return;
     entry.geo=data;entry.tier=key.split('@')[1];geometryRevision++;entry.loading=false;entry.rendering=true;syncSelections();
   }catch(error){
-    if(error.name!=='AbortError'&&selections.get(road.id)===entry){entry.error=error;console.error('Route geometry:',error);toast(`${road.code} 道路走向读取失败：${error.message}。点击左侧已选路线可重试。`);}
+    if(error.name!=='AbortError'&&selections.get(road.id)===entry){entry.error=error;console.error('Route geometry:',error);toast(`${routeLabel(road)} 走向读取失败：${error.message}。点击左侧已选路线可重试。`);}
   }finally{entry.loading=false;if(selections.get(road.id)===entry)syncSelections();}
 }
 
@@ -451,6 +487,10 @@ $('search').addEventListener('input',()=>updateList());
 $('province').addEventListener('change',()=>updateList());
 document.querySelectorAll('[data-kind]').forEach(button=>button.addEventListener('click',()=>{
   kind=button.dataset.kind;document.querySelectorAll('[data-kind]').forEach(b=>b.classList.toggle('active',b===button));updateList();
+  if(kind==='highspeed'||kind==='railway'){
+    if(kind==='highspeed')highspeedVisible=true;else railwayVisible=true;
+    $('toggle-'+kind).setAttribute('aria-pressed','true');updateNetworkVisibility();
+  }
 }));
 document.querySelectorAll('[data-query]').forEach(button=>button.addEventListener('click',()=>{
   $('search').value=button.dataset.query;kind='all';$('province').value='';
@@ -468,6 +508,10 @@ $('restore-view').addEventListener('click',()=>{const camera=viewBookmarks.take(
 for(const [id,type] of [['toggle-national','national'],['toggle-express','express']])$(id).addEventListener('click',()=>{
   if(type==='national')nationalVisible=!nationalVisible;else expressVisible=!expressVisible;
   $(id).setAttribute('aria-pressed',String(type==='national'?nationalVisible:expressVisible));updateNetworkVisibility();
+});
+for(const type of ['highspeed','railway'])$('toggle-'+type).addEventListener('click',()=>{
+  if(type==='highspeed')highspeedVisible=!highspeedVisible;else railwayVisible=!railwayVisible;
+  $('toggle-'+type).setAttribute('aria-pressed',String(kindVisible(type)));updateNetworkVisibility();
 });
 $('clear-selections').addEventListener('click',resetSelection);
 $('selected-list').addEventListener('click',e=>{

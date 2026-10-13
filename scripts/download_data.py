@@ -82,7 +82,7 @@ def download_pbf(url, dest):
     if actual != expected:
         raise RuntimeError(f'PBF checksum mismatch: {actual} != {expected}')
     pending.replace(dest)
-    (dest.parent / 'china.osm.pbf.md5').write_text(expected, encoding='utf-8')
+    dest.with_suffix(dest.suffix + '.md5').write_text(expected, encoding='utf-8')
     for i in range(count):
         (parts / f'{i:04}.part').unlink()
     parts.rmdir()

@@ -2,7 +2,7 @@
 
 生产访问地址：`https://ydl66.top/map/`。
 
-当前镜像：`china-road-map:1.0.4`。原有运行数据实测 3,157,698,997 字节，新增展示数据 685,008,787 字节；镜像在服务器上为 5,217,601 字节。
+当前镜像：`china-road-map:1.1.0`。含铁路的运行数据实测 4,008,846,516 字节，其中展示数据 776,039,812 字节；镜像在服务器上为 5,224,465 字节。
 
 所有编译和镜像构建在本机 **Ubuntu-22.04 WSL** 完成。服务器只执行镜像导入、数据校验、解压和 Docker Compose 启动，不安装 Rust、编译器、Python 或 Node。
 
@@ -63,6 +63,8 @@ docker exec nginx-proxy nginx -s reload
 - 容器每 30 秒使用自身程序检查健康状态，不额外装 curl 或 shell。
 - Docker 重启后自动启动；程序收到 SIGTERM 时等待现有请求结束。
 
+铁路更新包只包含目录、运行索引、铁路概览和分级路线，不包含源 PBF 或铁路核对数据库。首次启用铁路背景才下载约 586KB 的 gzip 概览，两类查询按 `highspeed` / `railway` 分离。
+
 数据更新须先停止地图容器，再替换整套匹配的底图/索引/路线，完成后启动容器。网页和地图块缓存最长一小时，修改现有数据后客户端可能需要刷新或清理缓存。
 
 ## 验证
@@ -72,6 +74,7 @@ node --test tests/test_view_controls.cjs tests/test_resource_paths.cjs tests/tes
 .\.prepare-venv\Scripts\python.exe tests/test_display_data.py
 python tests/verify_rust_server.py --base http://127.0.0.1:18766 --baseline http://127.0.0.1:18768 --public
 python tests/verify_rust_server.py --base https://ydl66.top/map/ --public
+python tests/verify_railway_server.py --base https://ydl66.top/map/ --output verification-railways-server.json
 ```
 
 验证包含真实底图块、展示路线、分类查询、gzip、HEAD、路径保护，以及 Python 与 Rust 展示坐标一致性。原始坐标保留测试仍在 Rust 单元测试中。当前公开模式的功能检查与限流压力检查分开进行，避免将有意拦截的批量请求误报为服务故障。验收记录为 `verification-rust-local.json`、`verification-rust-server.json`、`verification-public-safety.json`、`verification-display-payloads.json`。

@@ -404,7 +404,10 @@ fn bounds(value: &str) -> AppResult<[f64; 4]> {
 fn kinds(value: &str) -> AppResult<Vec<String>> {
     let mut result = Vec::new();
     for kind in value.split(',') {
-        if !matches!(kind, "national" | "expressway" | "provincial") {
+        if !matches!(
+            kind,
+            "national" | "expressway" | "provincial" | "highspeed" | "railway"
+        ) {
             return Err(AppError(
                 StatusCode::BAD_REQUEST,
                 "Invalid road kinds".into(),
@@ -762,6 +765,10 @@ mod tests {
             kinds("national,national,expressway").unwrap(),
             ["national", "expressway"]
         );
+        assert_eq!(
+            kinds("highspeed,railway,highspeed").unwrap(),
+            ["highspeed", "railway"]
+        );
         for value in ["", "invalid", "national,", "national,road"] {
             assert!(kinds(value).is_err());
         }
@@ -843,6 +850,20 @@ mod tests {
             json!([[104.001, 30.002], [104.003, 30.004]])
         );
         assert_eq!(data["truncated"], false);
+    }
+
+    #[test]
+    fn railway_queries_do_not_mix_with_expressways() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("CREATE VIRTUAL TABLE spatial USING rtree(id,minx,maxx,miny,maxy); CREATE TABLE segments(id INTEGER,route TEXT,code TEXT,kind TEXT,coordinates TEXT); INSERT INTO spatial VALUES(1,116,117,39,40),(2,116,117,39,40),(3,116,117,39,40); INSERT INTO segments VALUES(1,'expressway-G2','G2','expressway','[[116,39],[117,40]]'),(2,'highspeed-jinghu','3002','highspeed','[[116,39],[117,40]]'),(3,'railway-jinghu','0002','railway','[[116,39],[117,40]]');").unwrap();
+        for kind in ["expressway", "highspeed", "railway"] {
+            let data: Value = serde_json::from_slice(
+                &query_network(&conn, [116.2, 39.2, 116.8, 39.8], &[kind.into()]).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(data["features"].as_array().unwrap().len(), 1);
+            assert_eq!(data["features"][0]["properties"]["kind"], kind);
+        }
     }
 
     #[tokio::test]

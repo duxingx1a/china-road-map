@@ -1,25 +1,25 @@
 {
-  "updatedAt": "2026-10-13T03:36:40.517891+00:00",
+  "updatedAt": "2026-10-13T09:52:53.720560+00:00",
   "url": "https://ydl66.top/map/",
   "server": "ydl-server",
   "project": "/root/ydl-projects/map",
   "backend": "rust",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "compiledOn": "local Ubuntu-22.04 WSL",
   "target": "x86_64-unknown-linux-musl",
   "serverCompilation": false,
-  "image": "china-road-map:1.0.4",
-  "imageId": "sha256:6796c41dd4fd5cdd508f96b7710fcd5f54cb71a74caea550040645c752b2fa6d",
-  "imageBytesOnServer": 5217601,
-  "runtimeDataBytesOnServer": 3842707784,
-  "displayDataBytesOnServer": 685008787,
+  "image": "china-road-map:1.1.0",
+  "imageId": "sha256:5dadd5373502c4c635f7b57731d6118c4174c58c3d4e0853d77856dd6912f1d9",
+  "imageBytesOnServer": 5224465,
+  "runtimeDataBytesOnServer": 4008846516,
+  "displayDataBytesOnServer": 776039812,
   "memoryLimitMiB": 256,
   "cpuLimit": 1.25,
   "health": "healthy",
   "restartCount": 0,
   "verification": {
     "nodeTestsPassed": 11,
-    "rustTestsPassed": 6,
+    "rustTestsPassed": 7,
     "displayGeometryTestsPassed": 2,
     "localPythonDisplayDataParity": true,
     "serverFunctionalChecks": "passed",
@@ -33,7 +33,9 @@
     "sampleNetworkGzipBytesBefore": 9383911,
     "sampleNetworkGzipBytesAfter": 548734,
     "roadPresentation": "G0711 search card, selected list and detail verified in production browser; G0613, G318 and Guangxi S60 checked against local catalog",
-    "mobile": "Local browser: 320x568 and 390x844 portrait, 844x390 landscape; drag up/down, search and route selection. Production 390px: toolbar one row, collapsed drawer 104px, detail 70px, no horizontal overflow. Desktop 1280px: sidebar 330px and original two-row toolbar."
+    "mobile": "Local browser: 320x568 and 390x844 portrait, 844x390 landscape; drag up/down, search and route selection. Production 390px: toolbar one row, collapsed drawer 104px, detail 70px, no horizontal overflow. Desktop 1280px: sidebar 330px and original two-row toolbar.",
+    "railwayTestsPassed": 4,
+    "railwayPublicChecks": "passed; display files byte-identical to local, categories distinct, private files blocked"
   },
   "ui": {
     "hoverPrefetchDelayMs": 160,
@@ -54,6 +56,21 @@
       "toolbarColumns": 6,
       "selectedRouteKeepsCamera": true,
       "keyboardViewportResize": true
+    },
+    "railways": {
+      "highspeedStyle": "red and white alternating",
+      "conventionalStyle": "black and white alternating",
+      "individualLineColors": false,
+      "lazyOverview": true,
+      "defaultBackgroundEnabled": false,
+      "mobileCategoriesFit320px": true
     }
+  },
+  "railwayData": {
+    "snapshot": "2026-10-12T20:21:35Z",
+    "highspeedRecords": 206,
+    "conventionalRecords": 1024,
+    "scope": "named infrastructure lines, sections and branches; not an official exhaustive route list",
+    "originalRoadFilesByteIdentical": 1377
   }
 }
